@@ -1,0 +1,220 @@
+{
+  "name": "Teste finalizado",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "orcamento-pc",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -960,
+        -112
+      ],
+      "id": "1b27da95-0d57-49ca-85c7-3b462166d418",
+      "name": "Webhook",
+      "webhookId": "0e6f053f-9d07-4ccb-806b-f3683a5e3259"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1E1Huq-splk53sTbK98P0tbJB___AzuLI4mVH3JyDqTs",
+          "mode": "list",
+          "cachedResultName": "planilha de preços",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1E1Huq-splk53sTbK98P0tbJB___AzuLI4mVH3JyDqTs/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Página1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1E1Huq-splk53sTbK98P0tbJB___AzuLI4mVH3JyDqTs/edit#gid=0"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        -784,
+        -112
+      ],
+      "id": "ba02df41-efdb-4754-9b48-892249c3764d",
+      "name": "Get row(s) in sheet",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "xCa8LfeZw1mJVBII",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.z-api.io/instances/3ECF8D51A2E8F16641BB720E11FB8BAA/token/A62086C66D388ADB79F65D30/send-text",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Client-Token",
+              "value": "F8e46a514efeb4f129a2a7c972f06f5a3S"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "phone",
+              "value": "={{ $node[\"Webhook\"].json.body.Whatsapp.replace('+', '') }}"
+            },
+            {
+              "name": "message",
+              "value": "={{ $json.output }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        -304,
+        -192
+      ],
+      "id": "da7adf93-b9c9-44b4-b852-2ac8d7550ca3",
+      "name": "HTTP Request"
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $('Webhook').item.json.body.Email }}",
+        "subject": "Seu Orçamento Chegou!",
+        "emailType": "text",
+        "message": "={{ $json.output }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        -304,
+        0
+      ],
+      "id": "19b3c0f8-982b-458f-8357-6838f7561034",
+      "name": "Send a message",
+      "webhookId": "797a93ea-0a44-4361-aa5f-5f44dae95a41",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "E0yRXEL5a8FjZbHn",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": "openai/gpt-oss-120b",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+      "typeVersion": 1,
+      "position": [
+        -656,
+        48
+      ],
+      "id": "7a7bcc10-369f-4143-a0b4-385d6a5d6c5b",
+      "name": "Groq Chat Model",
+      "credentials": {
+        "groqApi": {
+          "id": "AWiFlRYjy8lhLzyT",
+          "name": "Groq account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Você é um consultor técnico de vendas premium. Sua única base de dados é a tabela abaixo.\n\nTABELA DE PREÇOS (JSON):\n{{ JSON.stringify($input.all()) }}\n\n---\nDADOS DO PEDIDO:\nCliente: {{ $('Webhook').item.json.body.Nome }}\nE-mail: {{ $('Webhook').item.json.body.Email }}\nItem solicitado: {{ $('Webhook').item.json.body.ModelosPlacadevdeo }} {{ $('Webhook').item.json.body.MemriaRamSamsung }} {{ $('Webhook').item.json.body.MemriaRamKtrok }} {{ $('Webhook').item.json.body.MarcaPlacaMe }} {{ $('Webhook').item.json.body.ModeloASRock }} {{ $('Webhook').item.json.body.ModeloASUS }} {{ $('Webhook').item.json.body.MarcaMonitor }} {{ $('Webhook').item.json.body.MonitorSamsung }} {{ $('Webhook').item.json.body.MONITORLG }} {{ $('Webhook').item.json.body.AOC }} {{ $('Webhook').item.json.body.ModelosPlacadeVdeo }}\n\n---\nREGRAS OBRIGATÓRIAS:\n1. Localize o produto na tabela. Se houver erro de digitação (ex: HMZ/MHz), use a marca e modelo para identificar.\n2. Não peça informações extras. O preço ESTÁ na tabela.\n3. Responda de forma organizada usando negrito e emojis conforme o modelo abaixo.\n\n---\nRESPOSTA FINAL (Responda APENAS neste formato):\nOlá, {{ $('Webhook').item.json.body.Nome }}! Tudo bem? 😊 \n\nRecebemos seu pedido e aqui está o seu orçamento:\n\n💻 *PRODUTO:* [Nome do Produto Encontrado]\n💰 *VALOR UNITÁRIO:* R$ [Preço da Tabela]\n\n✅ *Orçamento detalhado enviado para:* {{ $('Webhook').item.json.body.Email }}\n\nPodemos prosseguir com a reserva do seu item agora?",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        -656,
+        -112
+      ],
+      "id": "4eda3c4c-2a2b-4759-b153-d292fffceebb",
+      "name": "AI Agent",
+      "executeOnce": true
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Get row(s) in sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get row(s) in sheet": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        []
+      ]
+    },
+    "Groq Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Send a message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": false
+  },
+  "versionId": "dd13bfdb-a678-45f8-bead-83b1b2f9466b",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "de25e33099364b202f26f0f76d3bc7536432940dc155b39e9296227f51efc285"
+  },
+  "id": "uzEIoybE_Rzunoyffy-sJ",
+  "tags": []
+}
